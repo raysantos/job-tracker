@@ -70,7 +70,7 @@ h2 small{color:var(--muted);font-size:15px;font-weight:400}
 .chip[aria-pressed="true"]{background:var(--navy);color:var(--bg);border-color:var(--navy)}
 
 /* list rows */
-.row{display:grid;grid-template-columns:76px 1fr auto;gap:14px;align-items:center;padding:16px 22px;border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:76px 40px 1fr auto;gap:14px;align-items:center;padding:16px 22px;border-top:1px solid var(--line)}
 .row:first-child{border-top:0}
 .date{color:var(--muted);font-size:14px;font-variant-numeric:tabular-nums}
 .co{font-weight:700;font-size:17px}
@@ -81,9 +81,16 @@ h2 small{color:var(--muted);font-size:15px;font-weight:400}
 .s-Applied{color:var(--applied)} .s-Screening{color:var(--screen)} .s-Interviewing{color:var(--interview)} .s-Offer{color:var(--offer)} .s-Rejected{color:var(--rejected)}
 .empty{padding:28px 22px;color:var(--muted)}
 @media (max-width:640px){
-  .row{grid-template-columns:1fr auto;padding:14px 18px}
+  .row{grid-template-columns:40px 1fr auto;padding:14px 18px}
   .row .date{grid-column:1/-1;order:-1}
 }
+
+/* logos */
+.logo{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;overflow:hidden;
+  background:#fff;border:1px solid var(--line);font-weight:700;font-size:14px;color:var(--navy)}
+.logo img{width:24px;height:24px;object-fit:contain;display:block}
+.logo.ini{background:var(--surface-2)}
+.tile .head{display:flex;gap:12px;align-items:flex-start}
 
 /* tiles */
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
@@ -206,6 +213,11 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
   };
   $("lockbtn").onclick = () => { $("app").hidden = true; $("lock").hidden = false; ["stats","list","progress","recruiters","targets"].forEach(id => $(id).innerHTML = ""); $("pass").focus(); };
 
+  const initials = n => String(n || "?").replace(/\(.*?\)/g, "").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+  const logo = (name, domain) => domain
+    ? `<span class="logo"><img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.classList.add('ini');this.parentNode.textContent='${esc(initials(name))}'"></span>`
+    : `<span class="logo ini" aria-hidden="true">${esc(initials(name))}</span>`;
+
   const fmt = d => new Date(d + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
   function render(data) {
@@ -231,6 +243,7 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
       $("list").innerHTML = rows.length ? rows.map(s => `
         <div class="row">
           <div class="date">${fmt(s.date)}</div>
+          ${logo(s.company, s.domain)}
           <div>
             <div class="co">${esc(s.company)}</div>
             <div class="role">${esc(s.role)}</div>
@@ -244,25 +257,28 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
 
     $("progress").innerHTML = data.inProgress.map(p => `
       <div class="tile">
+        <div class="head">${logo(p.company, p.domain)}<div>
         <div class="co">${esc(p.company)}</div>
         <div class="role">${esc(p.role)}</div>
-        ${p.where ? `<div class="meta">${esc(p.where)}</div>` : ""}
+        ${p.where ? `<div class="meta">${esc(p.where)}</div>` : ""}</div></div>
         <dl><div><dt>Where it stands</dt><dd>${esc(p.stands)}</dd></div>
         <div class="next"><dt>Next step</dt><dd>${esc(p.next)}</dd></div></dl>
       </div>`).join("");
 
     $("recruiters").innerHTML = data.recruiters.map(r => `
       <div class="tile">
+        <div class="head">${logo(r.agency, r.domain)}<div>
         <div class="co">${esc(r.agency)}</div>
         <div class="role">${esc(r.client)}</div>
-        <div class="meta">${esc(r.type)}</div>
+        <div class="meta">${esc(r.type)}</div></div></div>
         <dl><div><dt>Where it stands</dt><dd>${esc(r.stands)}</dd></div></dl>
       </div>`).join("");
 
     $("targets").innerHTML = data.targets.map(t => `
       <div class="tile">
+        <div class="head">${logo(t.company, t.domain)}<div>
         <div class="co">${esc(t.company)}</div>
-        <div class="role">${esc(t.role)}</div>
+        <div class="role">${esc(t.role)}</div></div></div>
         <dl><div><dt>Note</dt><dd>${esc(t.note)}</dd></div></dl>
       </div>`).join("");
   }
