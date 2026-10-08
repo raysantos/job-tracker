@@ -111,6 +111,8 @@ h2 small{color:var(--muted);font-size:15px;font-weight:400}
 .lockcard input{width:100%;border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:13px 18px;text-align:center;outline:none;letter-spacing:1px}
 .lockcard input:focus{border-color:var(--accent)}
 .lockcard button{margin-top:12px;width:100%;border:0;border-radius:999px;padding:13px;background:var(--navy);color:var(--bg);font-weight:600;cursor:pointer}
+.remember{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;color:var(--muted);font-size:14px;cursor:pointer}
+.lockcard .remember input{width:auto;padding:0;margin:0;accent-color:var(--accent)}
 .err{color:#d93025;font-size:14px;min-height:20px;margin-top:10px}
 footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
 [hidden]{display:none!important}
@@ -124,6 +126,7 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
     <h2>Job Tracker</h2>
     <p>Enter your passcode to view.</p>
     <input id="pass" type="password" placeholder="Passcode" aria-label="Passcode" autofocus>
+    <label class="remember"><input type="checkbox" id="remember" checked> Remember this device</label>
     <button type="submit">Unlock</button>
     <div class="err" id="err" role="alert"></div>
   </form>
@@ -136,7 +139,7 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
         <div class="mark"><i>R</i> Raysan Designs</div>
         <div style="display:flex;gap:8px">
           <button class="iconbtn" id="theme" aria-label="Switch to dark mode"></button>
-          <button class="iconbtn" id="lockbtn" aria-label="Lock">
+          <button class="iconbtn" id="lockbtn" aria-label="Lock and forget this device" title="Lock and forget this device">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
           </button>
         </div>
@@ -194,24 +197,55 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
   $("theme").onclick = () => { const t = isDark() ? "light" : "dark"; document.documentElement.dataset.theme = t; store.set("jt-theme", t); paintTheme(); };
   paintTheme();
 
+  /* key storage: a non-extractable CryptoKey in IndexedDB (the passcode itself is never stored) */
+  const idb = mode => new Promise((res, rej) => {
+    const o = indexedDB.open("job-tracker", 1);
+    o.onupgradeneeded = () => o.result.createObjectStore("k");
+    o.onsuccess = () => res(o.result.transaction("k", mode).objectStore("k"));
+    o.onerror = () => rej(o.error);
+  });
+  const req = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+  const saveKey = async k => { try { await req((await idb("readwrite")).put(k, "key")); } catch {} };
+  const loadKey = async () => { try { return await req((await idb("readonly")).get("key")); } catch { return null; } };
+  const forgetKey = async () => { try { await req((await idb("readwrite")).delete("key")); } catch {} };
+
   /* decrypt: PBKDF2-SHA256 -> AES-GCM-256 */
-  async function decrypt(pass) {
-    const env = await fetch("data.enc.json", { cache: "no-store" }).then(r => r.json());
+  let env;
+  const getEnv = async () => env || (env = await fetch("data.enc.json", { cache: "no-store" }).then(r => r.json()));
+  async function deriveKey(pass) {
+    const e = await getEnv();
     const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(pass), "PBKDF2", false, ["deriveKey"]);
-    const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(env.salt), iterations: env.iter, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
-    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(env.iv) }, key, b64(env.ct));
+    return crypto.subtle.deriveKey({ name: "PBKDF2", salt: b64(e.salt), iterations: e.iter, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  }
+  async function decryptWith(key) {
+    const e = await getEnv();
+    const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(e.iv) }, key, b64(e.ct));
     return JSON.parse(new TextDecoder().decode(plain));
   }
+  const show = data => { render(data); $("lock").hidden = true; $("app").hidden = false; };
+
+  /* auto-unlock on a device that remembers */
+  (async () => {
+    const k = await loadKey();
+    if (!k) return;
+    try { show(await decryptWith(k)); } catch { forgetKey(); }
+  })();
 
   $("lockform").onsubmit = async e => {
     e.preventDefault();
     const btn = e.target.querySelector("button");
     $("err").textContent = ""; btn.textContent = "Unlocking…"; btn.disabled = true;
-    try { render(await decrypt($("pass").value)); $("pass").value = ""; $("lock").hidden = true; $("app").hidden = false; }
+    try {
+      const key = await deriveKey($("pass").value);
+      const data = await decryptWith(key);
+      $("pass").value = "";
+      if ($("remember").checked) await saveKey(key); else await forgetKey();
+      show(data);
+    }
     catch { $("err").textContent = "That passcode didn't work."; }
     finally { btn.textContent = "Unlock"; btn.disabled = false; }
   };
-  $("lockbtn").onclick = () => { $("app").hidden = true; $("lock").hidden = false; ["stats","list","progress","recruiters","targets"].forEach(id => $(id).innerHTML = ""); $("pass").focus(); };
+  $("lockbtn").onclick = () => { forgetKey(); $("app").hidden = true; $("lock").hidden = false; ["stats","list","progress","recruiters","targets"].forEach(id => $(id).innerHTML = ""); $("pass").focus(); };
 
   const initials = n => String(n || "?").replace(/\(.*?\)/g, "").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
   const logo = (name, domain) => domain
