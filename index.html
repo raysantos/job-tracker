@@ -14,18 +14,18 @@
   --bg:#f4f3f1; --surface:#ffffff; --surface-2:#f8f7f5; --text:#16181d; --muted:#5d6370; --line:#e3e1dc;
   --navy:#1d2340; --accent:#ff6a3d; --teal:#2bb3a3; --cream:#ffecce;
   --applied:#3d63dd; --screen:#b7791f; --interview:#2b8a3e; --offer:#0e8a7a; --rejected:#9aa0a6;
-  --series-1:#2a78d6; --radius:30px; --shadow:0 1px 2px rgba(20,22,30,.06),0 8px 24px rgba(20,22,30,.06);
+  --series-1:#2a78d6; --series-2:#eb6834; --radius:30px; --shadow:0 1px 2px rgba(20,22,30,.06),0 8px 24px rgba(20,22,30,.06);
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#101217; --surface:#191c23; --surface-2:#20242c; --text:#eceef2; --muted:#9aa1ad; --line:#2a2f39;
-    --navy:#e8ebf5; --series-1:#3987e5; --accent:#ff7a4d; --applied:#7d9bff; --screen:#e6b25a; --interview:#5fcf7a; --offer:#4fd1c0; --rejected:#7d838c;
+    --navy:#e8ebf5; --series-1:#3987e5; --series-2:#d95926; --accent:#ff7a4d; --applied:#7d9bff; --screen:#e6b25a; --interview:#5fcf7a; --offer:#4fd1c0; --rejected:#7d838c;
     --shadow:none;
   }
 }
 :root[data-theme="dark"]{
   --bg:#101217; --surface:#191c23; --surface-2:#20242c; --text:#eceef2; --muted:#9aa1ad; --line:#2a2f39;
-  --navy:#e8ebf5; --series-1:#3987e5; --accent:#ff7a4d; --applied:#7d9bff; --screen:#e6b25a; --interview:#5fcf7a; --offer:#4fd1c0; --rejected:#7d838c;
+  --navy:#e8ebf5; --series-1:#3987e5; --series-2:#d95926; --accent:#ff7a4d; --applied:#7d9bff; --screen:#e6b25a; --interview:#5fcf7a; --offer:#4fd1c0; --rejected:#7d838c;
   --shadow:none;
 }
 *{box-sizing:border-box}
@@ -35,7 +35,7 @@ button,input{font:inherit;color:inherit}
 .wrap{max-width:1040px;margin:0 auto;padding:0 16px}
 
 /* hero */
-.hero{position:relative;overflow:hidden;color:#fff;padding:28px 0 40px;
+.hero{position:relative;overflow:hidden;color:#fff;padding:18px 0 20px;
   background:linear-gradient(120deg,#ff7a59,#ff9f6b 30%,#5cc8b8 70%,#2b8fb3);background-size:200% 200%;animation:drift 18s ease-in-out infinite}
 @keyframes drift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
 @media (prefers-reduced-motion:reduce){.hero{animation:none}}
@@ -45,9 +45,15 @@ button,input{font:inherit;color:inherit}
 .iconbtn{width:40px;height:40px;border-radius:50%;border:0;display:grid;place-items:center;cursor:pointer;background:rgba(255,255,255,.22);color:#fff;transition:background .2s}
 .iconbtn:hover{background:rgba(255,255,255,.34)}
 .iconbtn svg{width:20px;height:20px}
-h1{font-weight:300;font-size:clamp(34px,6vw,56px);line-height:1.05;margin:8px 0 6px;letter-spacing:-.5px}
+h1{font-weight:300;font-size:clamp(26px,4vw,34px);line-height:1.1;margin:0 0 2px;letter-spacing:-.3px}
 h1 b{font-weight:700}
-.sub{opacity:.92;margin:0}
+.sub{opacity:.92;margin:0;font-size:13px}
+.actions{display:flex;gap:8px;align-items:center}
+.pillbtn{display:inline-flex;align-items:center;gap:7px;height:40px;padding:0 14px;border:0;border-radius:999px;cursor:pointer;
+  background:rgba(255,255,255,.22);color:#fff;font-size:14px;font-weight:600;transition:background .2s}
+.pillbtn:hover{background:rgba(255,255,255,.34)}
+.pillbtn svg{width:18px;height:18px}
+@media (max-width:420px){.pillbtn span{display:none}.pillbtn{width:40px;padding:0;justify-content:center}}
 
 /* stats */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:-52px;position:relative}
@@ -57,7 +63,8 @@ h1 b{font-weight:700}
 @media (max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
 
 /* dashboard */
-.dash{margin:28px 0 0}
+.dash{margin:24px 0 0}
+.dash[hidden]{display:none}
 .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 .metric{background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:16px 20px;box-shadow:var(--shadow)}
 .metric .v{font-size:32px;font-weight:700;line-height:1.1;color:var(--text);font-variant-numeric:tabular-nums}
@@ -80,6 +87,18 @@ h1 b{font-weight:700}
 .chart .cap{stroke:var(--series-1);stroke-width:2;stroke-linecap:round}
 .chart .mid{fill:var(--series-1);stroke:var(--surface);stroke-width:2}
 .chart .empty{fill:var(--muted);font-size:13px}
+.sal-ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:-2px 0 8px}
+.mini{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--muted)}
+.mini[aria-pressed="true"]{color:var(--text);border-color:var(--muted)}
+.mini[aria-pressed="false"] i{opacity:.35}
+.k-ask{width:9px;height:9px;background:var(--series-2);transform:rotate(45deg);display:inline-block}
+.k-avg{width:12px;height:0;border-top:2px dashed var(--muted);display:inline-block}
+.k-range{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-left:4px}
+.k-range i{width:16px;height:2px;background:var(--series-1);display:inline-block;position:relative}
+.k-range i::after{content:"";position:absolute;left:5px;top:-3px;width:6px;height:6px;border-radius:50%;background:var(--series-1)}
+.chart .askm{fill:var(--series-2);stroke:var(--surface);stroke-width:2;pointer-events:none}
+.chart .avgl{stroke:var(--muted);stroke-width:1.5;stroke-dasharray:4 4;pointer-events:none}
+.chart .avgt{fill:var(--muted);font-size:11px}
 .tip{position:fixed;z-index:20;pointer-events:none;background:var(--navy);color:var(--bg);border-radius:10px;padding:7px 10px;font-size:13px;line-height:1.35;box-shadow:0 6px 20px rgba(0,0,0,.18);max-width:240px}
 .tip strong{display:block;font-size:14px}
 @media (max-width:760px){.charts{grid-template-columns:1fr}}
@@ -183,18 +202,23 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
   <header class="hero">
     <div class="wrap">
       <div class="top">
-        <span></span>
-        <div style="display:flex;gap:8px">
+        <div>
+          <h1>Job <b>Tracker</b></h1>
+          <p class="sub" id="updated"></p>
+        </div>
+        <div class="actions">
+          <button class="pillbtn" id="metricsbtn" aria-pressed="true" aria-controls="dash">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+            <span>Hide metrics</span>
+          </button>
           <button class="iconbtn" id="theme" aria-label="Switch to dark mode"></button>
         </div>
       </div>
-      <h1>Job <b>Tracker</b></h1>
-      <p class="sub" id="updated"></p>
     </div>
   </header>
 
   <main class="wrap">
-    <section class="dash" aria-label="Dashboard">
+    <section class="dash" id="dash" aria-label="Dashboard">
       <div class="metrics" id="metrics"></div>
       <div class="charts">
         <figure class="panel">
@@ -202,7 +226,12 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
           <div class="chart" id="activity"></div>
         </figure>
         <figure class="panel">
-          <figcaption><b>Salary ranges</b><span>Posted base pay, where listed</span></figcaption>
+          <figcaption><b>Salary ranges</b><span id="sal-sub">Posted base pay, where listed</span></figcaption>
+          <div class="sal-ctl" id="sal-ctl" role="group" aria-label="Salary chart layers">
+            <button class="mini" data-l="ask" aria-pressed="true"><i class="k-ask"></i>My ask</button>
+            <button class="mini" data-l="avg" aria-pressed="true"><i class="k-avg"></i>Average</button>
+            <span class="k-range"><i></i>Posted range</span>
+          </div>
           <div class="chart" id="salary"></div>
         </figure>
       </div>
@@ -254,6 +283,17 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
   const saved = store.get("jt-theme"); if (saved) document.documentElement.dataset.theme = saved;
   $("theme").onclick = () => { const t = isDark() ? "light" : "dark"; document.documentElement.dataset.theme = t; store.set("jt-theme", t); paintTheme(); };
   paintTheme();
+
+  /* metrics show/hide */
+  const paintMetrics = () => {
+    const show = store.get("jt-metrics") !== "0";
+    $("dash").hidden = !show;
+    $("metricsbtn").setAttribute("aria-pressed", show);
+    $("metricsbtn").querySelector("span").textContent = show ? "Hide metrics" : "Show metrics";
+    $("metricsbtn").setAttribute("aria-label", show ? "Hide metrics" : "Show metrics");
+  };
+  $("metricsbtn").onclick = () => { store.set("jt-metrics", store.get("jt-metrics") === "0" ? "1" : "0"); paintMetrics(); if (lastData && !$("dash").hidden) renderDash(lastData); };
+  paintMetrics();
 
   /* key storage: a non-extractable CryptoKey in IndexedDB (the passcode itself is never stored) */
   const idb = mode => new Promise((res, rej) => {
@@ -379,26 +419,51 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
     $("activity").replaceChildren(svg);
     $("act-sub").textContent = `Applications sent per day, ${fmt(days[0])} – ${fmt(days[days.length - 1])}`;
 
-    /* salary: low-high whisker per job, dot at midpoint */
-    const jobs = [...subs, ...data.inProgress].filter(s => Array.isArray(s.salary)).sort((a, b) => (b.salary[0] + b.salary[1]) - (a.salary[0] + a.salary[1]));
-    const sw = Math.max(280, $("salary").clientWidth || 480), rowH = 34, labW = sw < 380 ? 110 : 128, sPadT = 6, axisH = 22, sh = sPadT + jobs.length * rowH + axisH;
-    const s2 = el("svg", { viewBox: `0 0 ${sw} ${Math.max(sh, 80)}`, role: "img", "aria-label": "Salary ranges: " + jobs.map(j => `${j.company} ${k(j.salary[0])} to ${k(j.salary[1])}`).join(", ") });
-    if (!jobs.length) { el("text", { class: "empty", x: 0, y: 30 }, s2).textContent = "No salary ranges recorded yet."; $("salary").replaceChildren(s2); return; }
-    const lo = Math.floor(Math.min(...jobs.map(j => j.salary[0])) / 25000) * 25000, hi = Math.ceil(Math.max(...jobs.map(j => j.salary[1])) / 25000) * 25000;
+    /* salary: posted range (whisker + midpoint), your ask (diamond), average posted midpoint (dashed) */
+    const layers = { ask: store.get("jt-l-ask") !== "0", avg: store.get("jt-l-avg") !== "0" };
+    $("sal-ctl").querySelectorAll(".mini").forEach(bn => {
+      bn.setAttribute("aria-pressed", layers[bn.dataset.l]);
+      bn.onclick = () => { const l = bn.dataset.l; store.set("jt-l-" + l, layers[l] ? "0" : "1"); renderDash(data); };
+    });
+    const jobs = [...subs, ...data.inProgress].filter(s => Array.isArray(s.salary) || (layers.ask && s.ask))
+      .sort((a, b) => ((b.salary ? b.salary[0] + b.salary[1] : 2 * b.ask)) - ((a.salary ? a.salary[0] + a.salary[1] : 2 * a.ask)));
+    const ranged = jobs.filter(j => j.salary), asks = [...subs, ...data.inProgress].filter(j => j.ask);
+    const avgMid = ranged.length ? ranged.reduce((t, j) => t + (j.salary[0] + j.salary[1]) / 2, 0) / ranged.length : null;
+    const avgAsk = asks.length ? asks.reduce((t, j) => t + j.ask, 0) / asks.length : null;
+    $("sal-sub").textContent = [avgMid && `Avg posted midpoint ${k(avgMid)}`, avgAsk && `your avg ask ${k(avgAsk)}`].filter(Boolean).join(" · ") || "Posted base pay, where listed";
+    const sw = Math.max(280, $("salary").clientWidth || 480), rowH = 32, labW = sw < 380 ? 110 : 128, sPadT = layers.avg ? 18 : 6, axisH = 22, sh = sPadT + jobs.length * rowH + axisH;
+    const s2 = el("svg", { viewBox: `0 0 ${sw} ${Math.max(sh, 80)}`, role: "img",
+      "aria-label": "Salary ranges: " + jobs.map(j => `${j.company}${j.salary ? ` ${k(j.salary[0])} to ${k(j.salary[1])}` : ""}${j.ask ? `, your ask ${k(j.ask)}` : ""}`).join("; ") });
+    if (!jobs.length) { el("text", { class: "empty", x: 0, y: 30 }, s2).textContent = "No salary data recorded yet."; $("salary").replaceChildren(s2); return; }
+    const vals = jobs.flatMap(j => [...(j.salary || []), ...(j.ask && layers.ask ? [j.ask] : [])]);
+    const lo = Math.floor(Math.min(...vals) / 25000) * 25000, hi = Math.ceil(Math.max(...vals) / 25000) * 25000;
     const sx = v => labW + (v - lo) / (hi - lo) * (sw - labW - 18);
+    const plotBottom = sPadT + jobs.length * rowH;
     for (let v = lo; v <= hi; v += 25000) {
-      el("line", { class: "grid", x1: sx(v), x2: sx(v), y1: sPadT, y2: sPadT + jobs.length * rowH }, s2);
+      el("line", { class: "grid", x1: sx(v), x2: sx(v), y1: sPadT, y2: plotBottom }, s2);
       el("text", { x: sx(v), y: sh - 6, "text-anchor": "middle" }, s2).textContent = k(v);
     }
+    if (layers.avg && avgMid) {
+      el("line", { class: "avgl", x1: sx(avgMid), x2: sx(avgMid), y1: sPadT - 4, y2: plotBottom }, s2);
+      const t = el("text", { class: "avgt", x: sx(avgMid), y: 11, "text-anchor": "middle" }, s2); t.textContent = "Avg " + k(avgMid);
+    }
     jobs.forEach((j, i) => {
-      const cy = sPadT + i * rowH + rowH / 2, [a, b] = j.salary, g = el("g", {}, s2);
+      const cy = sPadT + i * rowH + rowH / 2, g = el("g", {}, s2);
       el("text", { class: "lbl", x: 0, y: cy + 4 }, g).textContent = j.company.length > 18 ? j.company.slice(0, 17) + "…" : j.company;
-      el("line", { class: "whisk", x1: sx(a), x2: sx(b), y1: cy, y2: cy }, g);
-      el("line", { class: "cap", x1: sx(a), x2: sx(a), y1: cy - 6, y2: cy + 6 }, g);
-      el("line", { class: "cap", x1: sx(b), x2: sx(b), y1: cy - 6, y2: cy + 6 }, g);
-      el("circle", { class: "mid", cx: sx((a + b) / 2), cy, r: 5 }, g);
+      if (j.salary) {
+        const [a, b] = j.salary;
+        el("line", { class: "whisk", x1: sx(a), x2: sx(b), y1: cy, y2: cy }, g);
+        el("line", { class: "cap", x1: sx(a), x2: sx(a), y1: cy - 6, y2: cy + 6 }, g);
+        el("line", { class: "cap", x1: sx(b), x2: sx(b), y1: cy - 6, y2: cy + 6 }, g);
+        el("circle", { class: "mid", cx: sx((a + b) / 2), cy, r: 5 }, g);
+      }
+      if (layers.ask && j.ask) { const x = sx(j.ask), r = 6; el("path", { class: "askm", d: `M${x},${cy - r} L${x + r},${cy} L${x},${cy + r} L${x - r},${cy} Z` }, g); }
       const hit = el("rect", { class: "hit", x: 0, y: cy - rowH / 2, width: sw, height: rowH, tabindex: 0 }, g);
-      const on = e => showTip(e, j.company, `${k(a)} – ${k(b)} · midpoint ${k((a + b) / 2)}`);
+      const parts = [];
+      if (j.salary) parts.push(`Posted ${k(j.salary[0])} – ${k(j.salary[1])}`);
+      else parts.push("Range not listed");
+      if (j.ask) parts.push(`You asked ${k(j.ask)}` + (j.salary ? (j.ask >= j.salary[1] ? " (top of range)" : j.ask <= j.salary[0] ? " (bottom of range)" : "") : ""));
+      const on = e => showTip(e, j.company, parts.join(" · "));
       hit.addEventListener("pointerenter", on); hit.addEventListener("pointerleave", hideTip); hit.addEventListener("focus", on); hit.addEventListener("blur", hideTip);
     });
     $("salary").replaceChildren(s2);
