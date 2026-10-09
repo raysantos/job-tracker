@@ -35,7 +35,7 @@ button,input{font:inherit;color:inherit}
 .wrap{max-width:1040px;margin:0 auto;padding:0 16px}
 
 /* hero */
-.hero{position:relative;overflow:hidden;color:#fff;padding:28px 0 76px;
+.hero{position:relative;overflow:hidden;color:#fff;padding:28px 0 40px;
   background:linear-gradient(120deg,#ff7a59,#ff9f6b 30%,#5cc8b8 70%,#2b8fb3);background-size:200% 200%;animation:drift 18s ease-in-out infinite}
 @keyframes drift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
 @media (prefers-reduced-motion:reduce){.hero{animation:none}}
@@ -58,7 +58,7 @@ h1 b{font-weight:700}
 
 /* status tabs */
 .tabs{position:sticky;top:0;z-index:5;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;
-  margin:28px -16px 0;padding:12px 16px;background:var(--bg)}
+  margin:12px -16px 0;padding:12px 16px;background:var(--bg)}
 .tabs::-webkit-scrollbar{display:none}
 .tab{flex:none;display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);
   border-radius:999px;padding:8px 13px;cursor:pointer;font-size:14px;white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
@@ -164,8 +164,6 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
   </header>
 
   <main class="wrap">
-    <div class="stats" id="stats"></div>
-
     <nav class="tabs" id="tabs" role="tablist" aria-label="Status"></nav>
 
     <section id="sec-sub">
@@ -272,11 +270,6 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
     const subs = data.submitted.slice().sort((a,b) => b.date.localeCompare(a.date));
     $("updated").textContent = "Updated " + new Date(data.updated + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
     $("foot").textContent = subs.length + " applications since " + fmt(subs[subs.length-1].date);
-    const active = subs.filter(s => ["Screening","Interviewing","Offer"].includes(s.status)).length;
-    $("stats").innerHTML = [
-      [subs.length, "Submitted"], [data.inProgress.length, "In progress"],
-      [data.recruiters.length, "Recruiters"], [active, "Interviews & screens"]
-    ].map(([n,l]) => `<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`).join("");
 
     let tab = "all", q = "";
     const isInterview = st => ["Screening","Interviewing"].includes(st);
