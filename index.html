@@ -271,10 +271,9 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
     $("updated").textContent = "Updated " + new Date(data.updated + "T12:00:00").toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
     $("foot").textContent = subs.length + " applications since " + fmt(subs[subs.length-1].date);
 
-    let tab = "all", q = "";
+    let tab = "Applied", q = "";
     const isInterview = st => ["Screening","Interviewing"].includes(st);
     const groups = [
-      { id: "all",       label: "All",          n: subs.length + data.inProgress.length },
       { id: "Applied",   label: "Applied",      n: subs.filter(x => x.status === "Applied").length, dot: "s-Applied" },
       { id: "progress",  label: "In progress",  n: data.inProgress.length },
       { id: "Interview", label: "Interviewing", n: subs.filter(x => isInterview(x.status)).length, dot: "s-Interviewing" },
