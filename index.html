@@ -56,6 +56,20 @@ h1 b{font-weight:700}
 .stat .l{color:var(--muted);font-size:14px;margin-top:6px}
 @media (max-width:640px){.stats{grid-template-columns:repeat(2,1fr)}}
 
+/* status tabs */
+.tabs{position:sticky;top:0;z-index:5;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;
+  margin:28px -16px 0;padding:12px 16px;background:var(--bg)}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);
+  border-radius:999px;padding:8px 13px;cursor:pointer;font-size:14px;white-space:nowrap;transition:background .15s,color .15s,border-color .15s}
+.tab:hover{border-color:var(--muted)}
+.tab .ct{font-size:12px;font-weight:700;min-width:22px;padding:1px 7px;border-radius:999px;background:var(--surface-2);color:var(--muted);text-align:center}
+.tab[aria-selected="true"]{background:var(--navy);color:var(--bg);border-color:var(--navy)}
+.tab[aria-selected="true"] .ct{background:rgba(255,255,255,.18);color:inherit}
+.tab .dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+.tab[aria-selected="true"] .dot{background:var(--bg)}
+section[hidden]{display:none}
+
 /* sections */
 section{margin:40px 0}
 h2{font-size:24px;font-weight:600;margin:0 0 14px;display:flex;align-items:baseline;gap:10px}
@@ -88,7 +102,10 @@ h2 small{color:var(--muted);font-size:15px;font-weight:400}
 /* logos */
 .logo{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;overflow:hidden;
   background:#fff;border:1px solid var(--line);font-weight:700;font-size:14px;color:var(--navy)}
-.logo img{width:24px;height:24px;object-fit:contain;display:block}
+.logo{position:relative}
+.logo img{position:absolute;inset:0;margin:auto;width:24px;height:24px;object-fit:contain;display:block;opacity:0;transition:opacity .2s}
+.logo.has img.ok{opacity:1}
+.logo.has.loaded{background:#fff;color:transparent}
 .logo.ini{background:var(--surface-2)}
 .tile .head{display:flex;gap:12px;align-items:flex-start}
 
@@ -139,9 +156,6 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
         <div class="mark"><i>R</i> Raysan Designs</div>
         <div style="display:flex;gap:8px">
           <button class="iconbtn" id="theme" aria-label="Switch to dark mode"></button>
-          <button class="iconbtn" id="lockbtn" aria-label="Lock and forget this device" title="Lock and forget this device">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-          </button>
         </div>
       </div>
       <h1>Job <b>Tracker</b></h1>
@@ -152,26 +166,27 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
   <main class="wrap">
     <div class="stats" id="stats"></div>
 
-    <section>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Status"></nav>
+
+    <section id="sec-sub">
       <h2>Submitted <small id="subcount"></small></h2>
       <div class="bar">
         <input class="search" id="q" type="search" placeholder="Search company or role" aria-label="Search">
-        <div id="filters" style="display:flex;gap:8px;flex-wrap:wrap"></div>
       </div>
       <div class="card" id="list"></div>
     </section>
 
-    <section>
+    <section id="sec-progress">
       <h2>In progress <small>needs one action from you</small></h2>
       <div class="tiles" id="progress"></div>
     </section>
 
-    <section>
+    <section id="sec-rec">
       <h2>Recruiters &amp; contracts</h2>
       <div class="tiles" id="recruiters"></div>
     </section>
 
-    <section>
+    <section id="sec-targets">
       <h2>Not yet applied</h2>
       <div class="tiles" id="targets"></div>
     </section>
@@ -245,11 +260,10 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
     catch { $("err").textContent = "That passcode didn't work."; }
     finally { btn.textContent = "Unlock"; btn.disabled = false; }
   };
-  $("lockbtn").onclick = () => { forgetKey(); $("app").hidden = true; $("lock").hidden = false; ["stats","list","progress","recruiters","targets"].forEach(id => $(id).innerHTML = ""); $("pass").focus(); };
 
   const initials = n => String(n || "?").replace(/\(.*?\)/g, "").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
   const logo = (name, domain) => domain
-    ? `<span class="logo"><img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.classList.add('ini');this.parentNode.textContent='${esc(initials(name))}'"></span>`
+    ? `<span class="logo ini has">${esc(initials(name))}<img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64" alt="" referrerpolicy="no-referrer" onload="if(this.naturalWidth>16){this.classList.add('ok');this.parentNode.classList.add('loaded')}" onerror="this.remove()"></span>`
     : `<span class="logo ini" aria-hidden="true">${esc(initials(name))}</span>`;
 
   const fmt = d => new Date(d + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -264,15 +278,34 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
       [data.recruiters.length, "Recruiters"], [active, "Interviews & screens"]
     ].map(([n,l]) => `<div class="stat"><div class="n">${n}</div><div class="l">${l}</div></div>`).join("");
 
-    let filter = "All", q = "";
-    const counts = Object.fromEntries(STATUSES.map(s => [s, subs.filter(x => x.status === s).length]));
-    const opts = ["All", ...STATUSES.filter(s => counts[s])];
-    $("filters").innerHTML = opts.map(o => `<button class="chip" data-f="${o}" aria-pressed="${o==="All"}">${o}${o==="All" ? "" : " · " + counts[o]}</button>`).join("");
-    $("filters").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; filter = b.dataset.f; $("filters").querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c === b)); draw(); };
+    let tab = "all", q = "";
+    const isInterview = st => ["Screening","Interviewing"].includes(st);
+    const groups = [
+      { id: "all",       label: "All",          n: subs.length + data.inProgress.length },
+      { id: "Applied",   label: "Applied",      n: subs.filter(x => x.status === "Applied").length, dot: "s-Applied" },
+      { id: "progress",  label: "In progress",  n: data.inProgress.length },
+      { id: "Interview", label: "Interviewing", n: subs.filter(x => isInterview(x.status)).length, dot: "s-Interviewing" },
+      { id: "Offer",     label: "Offer",        n: subs.filter(x => x.status === "Offer").length, dot: "s-Offer", hideEmpty: true },
+      { id: "Rejected",  label: "Rejected",     n: subs.filter(x => x.status === "Rejected").length, dot: "s-Rejected" },
+      { id: "rec",       label: "Recruiters",   n: data.recruiters.length },
+      { id: "targets",   label: "Targets", n: data.targets.length }
+    ].filter(g => !(g.hideEmpty && !g.n));
+    const saved = store.get("jt-tab"); if (groups.some(g => g.id === saved)) tab = saved;
+    const paintTabs = () => {
+      $("tabs").innerHTML = groups.map(g => `<button class="tab" role="tab" data-t="${g.id}" aria-selected="${g.id === tab}">${g.dot ? `<span class="dot ${g.dot}"></span>` : ""}${g.label}<span class="ct">${g.n}</span></button>`).join("");
+      const subTab = !["progress","rec","targets"].includes(tab);
+      $("sec-sub").hidden = !subTab;
+      $("sec-progress").hidden = !(tab === "all" || tab === "progress");
+      $("sec-rec").hidden = !(tab === "all" || tab === "rec");
+      $("sec-targets").hidden = !(tab === "all" || tab === "targets");
+    };
+    $("tabs").onclick = e => { const b = e.target.closest(".tab"); if (!b) return; tab = b.dataset.t; store.set("jt-tab", tab); paintTabs(); draw(); b.scrollIntoView({ inline: "nearest", block: "nearest" }); };
     $("q").oninput = e => { q = e.target.value.toLowerCase(); draw(); };
+    const inTab = st => tab === "all" || (tab === "Interview" ? isInterview(st) : st === tab);
+    paintTabs();
 
     function draw() {
-      const rows = subs.filter(s => (filter === "All" || s.status === filter) && (!q || (s.company + " " + s.role).toLowerCase().includes(q)));
+      const rows = subs.filter(s => inTab(s.status) && (!q || (s.company + " " + s.role).toLowerCase().includes(q)));
       $("subcount").textContent = rows.length === subs.length ? subs.length + " total" : rows.length + " of " + subs.length;
       $("list").innerHTML = rows.length ? rows.map(s => `
         <div class="row">
