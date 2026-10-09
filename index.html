@@ -71,11 +71,13 @@ h1 b{font-weight:700}
 .metric .l{color:var(--muted);font-size:14px;margin-top:4px}
 .metric .d{color:var(--muted);font-size:13px}
 .charts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
-.panel{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:18px 20px 12px;box-shadow:var(--shadow);min-width:0}
+.panel{display:flex;flex-direction:column;margin:0;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:18px 20px 12px;box-shadow:var(--shadow);min-width:0}
 .panel figcaption{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
 .panel figcaption b{font-weight:600;font-size:16px}
 .panel figcaption span{color:var(--muted);font-size:13px}
 .chart svg{display:block;width:100%;height:auto;overflow:visible}
+#activity{flex:1;min-height:200px}
+#activity svg{height:100%}
 .chart text{font-family:inherit;fill:var(--muted);font-size:11px}
 .chart .lbl{fill:var(--text);font-size:12px}
 .chart .grid{stroke:var(--line);stroke-width:1}
@@ -387,38 +389,6 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
       m.children[0].textContent = v; m.children[1].textContent = l; m.children[2].textContent = d; return m;
     }));
 
-    /* activity: applications per day, first application -> updated date */
-    const dated = subs;
-    const first = new Date(dated.map(s => s.date).sort()[0] + "T12:00:00");
-    const days = []; for (const d = new Date(first); d <= today; d.setDate(d.getDate() + 1)) days.push(dayKey(d));
-    const counts = days.map(d => dated.filter(s => s.date === d));
-    const W = Math.max(280, $("activity").clientWidth || 480), H = 200, padL = 26, padB = 26, padT = 10, plotW = W - padL, plotH = H - padB - padT;
-    const max = Math.max(4, ...counts.map(c => c.length)); const step = max > 10 ? 5 : 2; const top = Math.ceil(max / step) * step;
-    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": `Applications per day: ${days.map((d, i) => fmt(d) + " " + counts[i].length).join(", ")}` });
-    for (let v = 0; v <= top; v += step) {
-      const y = padT + plotH - v / top * plotH;
-      el("line", { class: "grid", x1: padL, x2: W, y1: y, y2: y }, svg);
-      el("text", { x: padL - 6, y: y + 4, "text-anchor": "end" }, svg).textContent = v;
-    }
-    const bw = plotW / days.length, barW = Math.max(4, Math.min(28, bw - 6));
-    const labelEvery = Math.ceil(days.length / 6);
-    days.forEach((d, i) => {
-      const n = counts[i].length, x = padL + i * bw + (bw - barW) / 2, h = n / top * plotH, y = padT + plotH - h;
-      const g = el("g", {}, svg);
-      if (n) {
-        const r = Math.min(4, barW / 2, h);
-        el("path", { class: "bar", d: `M${x},${y + h} V${y + r} Q${x},${y} ${x + r},${y} H${x + barW - r} Q${x + barW},${y} ${x + barW},${y + r} V${y + h} Z` }, g);
-      }
-      const hit = el("rect", { class: "hit", x: padL + i * bw, y: padT, width: bw, height: plotH + 4, tabindex: 0 }, g);
-      const names = counts[i].map(s => s.company);
-      const line = n ? `${n} application${n > 1 ? "s" : ""}${names.length <= 4 ? ": " + names.join(", ") : ""}` : "No applications";
-      const on = e => { g.classList.add("on"); showTip(e, fmt(d), line); }; const off = () => { g.classList.remove("on"); hideTip(); };
-      hit.addEventListener("pointerenter", on); hit.addEventListener("pointerleave", off); hit.addEventListener("focus", on); hit.addEventListener("blur", off);
-      if (i % labelEvery === 0 || i === days.length - 1) el("text", { x: padL + i * bw + bw / 2, y: H - 6, "text-anchor": "middle" }, svg).textContent = fmt(d);
-    });
-    $("activity").replaceChildren(svg);
-    $("act-sub").textContent = `Applications sent per day, ${fmt(days[0])} – ${fmt(days[days.length - 1])}`;
-
     /* salary: posted range (whisker + midpoint), your ask (diamond), average posted midpoint (dashed) */
     const layers = { ask: store.get("jt-l-ask") !== "0", avg: store.get("jt-l-avg") !== "0" };
     $("sal-ctl").querySelectorAll(".mini").forEach(bn => {
@@ -434,7 +404,8 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
     const sw = Math.max(280, $("salary").clientWidth || 480), rowH = 32, labW = sw < 380 ? 110 : 128, sPadT = layers.avg ? 18 : 6, axisH = 22, sh = sPadT + jobs.length * rowH + axisH;
     const s2 = el("svg", { viewBox: `0 0 ${sw} ${Math.max(sh, 80)}`, role: "img",
       "aria-label": "Salary ranges: " + jobs.map(j => `${j.company}${j.salary ? ` ${k(j.salary[0])} to ${k(j.salary[1])}` : ""}${j.ask ? `, your ask ${k(j.ask)}` : ""}`).join("; ") });
-    if (!jobs.length) { el("text", { class: "empty", x: 0, y: 30 }, s2).textContent = "No salary data recorded yet."; $("salary").replaceChildren(s2); return; }
+    if (!jobs.length) { el("text", { class: "empty", x: 0, y: 30 }, s2).textContent = "No salary data recorded yet."; $("salary").replaceChildren(s2); }
+    else {
     const vals = jobs.flatMap(j => [...(j.salary || []), ...(j.ask && layers.ask ? [j.ask] : [])]);
     const lo = Math.floor(Math.min(...vals) / 25000) * 25000, hi = Math.ceil(Math.max(...vals) / 25000) * 25000;
     const sx = v => labW + (v - lo) / (hi - lo) * (sw - labW - 18);
@@ -467,6 +438,41 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
       hit.addEventListener("pointerenter", on); hit.addEventListener("pointerleave", hideTip); hit.addEventListener("focus", on); hit.addEventListener("blur", hideTip);
     });
     $("salary").replaceChildren(s2);
+    }
+
+    /* activity: applications per day, first application -> updated date */
+    const dated = subs;
+    const first = new Date(dated.map(s => s.date).sort()[0] + "T12:00:00");
+    const days = []; for (const d = new Date(first); d <= today; d.setDate(d.getDate() + 1)) days.push(dayKey(d));
+    const counts = days.map(d => dated.filter(s => s.date === d));
+    $("act-sub").textContent = `Applications sent per day, ${fmt(days[0])} – ${fmt(days[days.length - 1])}`;
+    $("activity").replaceChildren();
+    const W = Math.max(280, $("activity").clientWidth || 480), H = Math.max(200, $("activity").clientHeight || 200), padL = 26, padB = 26, padT = 10, plotW = W - padL, plotH = H - padB - padT;
+    const max = Math.max(4, ...counts.map(c => c.length)); const step = max > 10 ? 5 : 2; const top = Math.ceil(max / step) * step;
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": `Applications per day: ${days.map((d, i) => fmt(d) + " " + counts[i].length).join(", ")}` });
+    for (let v = 0; v <= top; v += step) {
+      const y = padT + plotH - v / top * plotH;
+      el("line", { class: "grid", x1: padL, x2: W, y1: y, y2: y }, svg);
+      el("text", { x: padL - 6, y: y + 4, "text-anchor": "end" }, svg).textContent = v;
+    }
+    const bw = plotW / days.length, barW = Math.max(4, Math.min(28, bw - 6));
+    const labelEvery = Math.ceil(days.length / 6);
+    days.forEach((d, i) => {
+      const n = counts[i].length, x = padL + i * bw + (bw - barW) / 2, h = n / top * plotH, y = padT + plotH - h;
+      const g = el("g", {}, svg);
+      if (n) {
+        const r = Math.min(4, barW / 2, h);
+        el("path", { class: "bar", d: `M${x},${y + h} V${y + r} Q${x},${y} ${x + r},${y} H${x + barW - r} Q${x + barW},${y} ${x + barW},${y + r} V${y + h} Z` }, g);
+      }
+      const hit = el("rect", { class: "hit", x: padL + i * bw, y: padT, width: bw, height: plotH + 4, tabindex: 0 }, g);
+      const names = counts[i].map(s => s.company);
+      const line = n ? `${n} application${n > 1 ? "s" : ""}${names.length <= 4 ? ": " + names.join(", ") : ""}` : "No applications";
+      const on = e => { g.classList.add("on"); showTip(e, fmt(d), line); }; const off = () => { g.classList.remove("on"); hideTip(); };
+      hit.addEventListener("pointerenter", on); hit.addEventListener("pointerleave", off); hit.addEventListener("focus", on); hit.addEventListener("blur", off);
+      if (i % labelEvery === 0 || i === days.length - 1) el("text", { x: padL + i * bw + bw / 2, y: H - 6, "text-anchor": "middle" }, svg).textContent = fmt(d);
+    });
+    $("activity").replaceChildren(svg);
+
   }
 
   let lastData, rz;
