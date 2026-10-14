@@ -1,0 +1,93 @@
+{
+  "updated": "2026-10-14",
+  "roles": [
+    {
+      "id": "mavenclinic-8115319002",
+      "company": "Maven Clinic",
+      "domain": "mavenclinic.com",
+      "role": "Senior Product Designer",
+      "where": "New York, hybrid or remote",
+      "salary": [175000, 195000],
+      "url": "https://job-boards.greenhouse.io/mavenclinic/jobs/8115319002",
+      "why": "Maven is a women's and family health platform, the sector you're targeting. Your product UX on CheQRboard and Luma Works, plus your brand-systems background, fits a senior product role, and the NYC hybrid option keeps it close to home.",
+      "family": true
+    },
+    {
+      "id": "compsych-11494746",
+      "company": "ComPsych",
+      "domain": "compsych.com",
+      "role": "Senior Product Designer",
+      "where": "Remote",
+      "salary": [130000, 180000],
+      "url": "https://builtin.com/job/senior-product-designer/11494746",
+      "why": "A remote senior product role at an employee-wellbeing benefits company. Your B2B platform work (CheQRboard admin, content library and AI assistant flows) maps well to benefits portals.",
+      "family": false
+    },
+    {
+      "id": "clearwater-11228194",
+      "company": "Clearwater Analytics",
+      "domain": "clearwateranalytics.com",
+      "role": "Sr. Product UI/Visual Designer",
+      "where": "New York, hybrid",
+      "salary": [156400, 210800],
+      "url": "https://www.builtinnyc.com/job/sr-product-ui-visual-designer-fo-applications/11228194",
+      "why": "This role combines product UI and visual design, your strongest overlap. You can bring Figma variables and tokens, icon systems (Iconic) and data-heavy SaaS screens, and the pay range is one of the highest on this list.",
+      "family": false
+    },
+    {
+      "id": "newyorklife-11667291",
+      "company": "New York Life",
+      "domain": "newyorklife.com",
+      "role": "Senior Associate, Product Designer",
+      "where": "New York or Jersey City, hybrid",
+      "salary": [124000, 177000],
+      "url": "https://www.builtinnyc.com/job/senior-associate-product-designer/11667291",
+      "why": "Jersey City hybrid is an easy commute from Rutherford. A large financial brand values your enterprise experience (Panasonic, PNY with NVIDIA) and your design-systems discipline.",
+      "family": false
+    },
+    {
+      "id": "cdw-11646423",
+      "company": "CDW",
+      "domain": "cdw.com",
+      "role": "Sr. Product Designer",
+      "where": "Remote or New York, hybrid",
+      "salary": [125000, 137000],
+      "url": "https://www.builtinnyc.com/job/sr-product-designer/11646423",
+      "why": "CDW is a B2B tech reseller, close to your PNY and Panasonic world of hardware GTM and B2B digital. The pay band is narrower and lower than the others, but the remote option makes it flexible.",
+      "family": false
+    },
+    {
+      "id": "superhuman-11625317",
+      "company": "Superhuman",
+      "domain": "superhuman.com",
+      "role": "Senior Growth Product Designer, Cross-Activation",
+      "where": "New York, hybrid",
+      "salary": [192000, 265000],
+      "url": "https://www.builtinnyc.com/job/senior-growth-product-designer-cross-activation/11625317",
+      "why": "This is the highest-paying role on the list, at a craft-focused AI product company. Your fast, polished execution and campaign-to-product range suit growth work, which blends marketing and product UX.",
+      "family": false
+    },
+    {
+      "id": "roo-11493065",
+      "company": "Roo",
+      "domain": "roo.vet",
+      "role": "Design Lead",
+      "where": "Remote",
+      "salary": [155000, 235000],
+      "url": "https://builtin.com/job/design-lead/11493065",
+      "why": "This is a lead title, which matches your design-lead experience at OSG and PNY and your mentoring there. It's a remote marketplace product where you can own both brand and UX.",
+      "family": false
+    },
+    {
+      "id": "raydar-11620425",
+      "company": "Raydar (AI mortgage client)",
+      "domain": "",
+      "role": "Senior Product Designer",
+      "where": "Remote",
+      "salary": [170000, 250000],
+      "url": "https://www.builtinnyc.com/job/senior-product-designer/11620425",
+      "why": "This is an AI-first fintech product, a natural place for your AI-native workflow (vibe-coded tools like AppFill and Iconic, and AI assistant UX on CheQRboard). It's remote with a high ceiling.",
+      "family": false
+    }
+  ]
+}

@@ -170,6 +170,34 @@ h2 small{color:var(--muted);font-size:15px;font-weight:400}
 .tile dd{margin:0}
 .tile .next{background:var(--surface-2);border-radius:14px;padding:10px 12px}
 
+/* recommended */
+.tab .dot.d-rec{color:var(--accent)}
+.recbar{justify-content:space-between}
+.recbar .chips{display:flex;gap:8px;flex-wrap:wrap}
+.copybtn{display:inline-flex;align-items:center;gap:7px;border:0;border-radius:999px;padding:9px 16px;cursor:pointer;font-size:14px;font-weight:600;background:var(--accent);color:#fff;white-space:nowrap}
+.copybtn svg{width:16px;height:16px}
+.copybtn:disabled{background:var(--surface-2);color:var(--muted);cursor:default}
+.rtile{display:flex;flex-direction:column;gap:12px}
+.rtile .head{position:relative}
+.rank{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--navy);color:var(--bg);font-variant-numeric:tabular-nums;margin-top:7px}
+.pay{color:var(--text);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+.badges{display:flex;flex-wrap:wrap;gap:6px}
+.badges:empty{display:none}
+.badge{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;white-space:nowrap}
+.b-family{background:color-mix(in srgb,var(--teal) 16%,transparent);color:var(--offer)}
+.b-close{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent)}
+.b-closed{background:var(--surface-2);color:var(--muted)}
+.why{background:var(--surface-2);border-radius:14px;padding:10px 12px;font-size:15px}
+.why b{display:block;font-size:12px;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);font-weight:400}
+.racts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto}
+.rbtn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 14px;cursor:pointer;font-size:14px;font-weight:600;text-decoration:none;color:var(--text);white-space:nowrap}
+.rbtn:hover{border-color:var(--muted)}
+.rbtn svg{width:15px;height:15px}
+.rbtn.link{grid-column:1/-1}
+.rbtn.ok[aria-pressed="true"]{background:var(--interview);border-color:var(--interview);color:#fff}
+.rbtn.no[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:var(--bg)}
+.rtile.is-skipped{opacity:.7}
+
 /* lock */
 .lock{min-height:100vh;display:grid;place-items:center;padding:16px;
   background:linear-gradient(120deg,#ff7a59,#ff9f6b 30%,#5cc8b8 70%,#2b8fb3)}
@@ -242,6 +270,22 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
     <div class="tip" id="tip" role="status" hidden></div>
 
     <nav class="tabs" id="tabs" role="tablist" aria-label="Status"></nav>
+
+    <section id="sec-recs" hidden>
+      <h2>Recommended <small id="reccount"></small></h2>
+      <div class="bar recbar">
+        <div class="chips" id="recfilter" role="group" aria-label="Filter recommendations">
+          <button class="chip" data-f="review" aria-pressed="true">To review</button>
+          <button class="chip" data-f="approved" aria-pressed="false">Approved</button>
+          <button class="chip" data-f="skipped" aria-pressed="false">Skipped</button>
+        </div>
+        <button class="copybtn" id="copyrec" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>
+          <span>Copy approved for Claude</span>
+        </button>
+      </div>
+      <div class="tiles" id="recs"></div>
+    </section>
 
     <section id="sec-sub">
       <h2>Submitted <small id="subcount"></small></h2>
@@ -323,28 +367,38 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
     const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(e.iv) }, key, b64(e.ct));
     return JSON.parse(new TextDecoder().decode(plain));
   }
-  const show = data => { $("lock").hidden = true; $("app").hidden = false; render(data); };
+  /* recommendations: plain public postings, fetched only after unlock */
+  const loadRecs = async () => {
+    try {
+      const r = await fetch("recommended.json", { cache: "no-store" });
+      if (!r.ok) return null;
+      const j = await r.json();
+      return Array.isArray(j.roles) ? j : null;
+    } catch { return null; }
+  };
+  const show = async data => {
+    const recs = await loadRecs();
+    $("lock").hidden = true; $("app").hidden = false; render(data, recs);
+  };
 
   /* auto-unlock on a device that remembers */
   (async () => {
     const k = await loadKey();
     if (!k) return;
-    try { show(await decryptWith(k)); } catch { forgetKey(); }
+    let data; try { data = await decryptWith(k); } catch { forgetKey(); return; }
+    await show(data);
   })();
 
   $("lockform").onsubmit = async e => {
     e.preventDefault();
     const btn = e.target.querySelector("button");
     $("err").textContent = ""; btn.textContent = "Unlocking…"; btn.disabled = true;
-    try {
-      const key = await deriveKey($("pass").value);
-      const data = await decryptWith(key);
-      $("pass").value = "";
-      if ($("remember").checked) await saveKey(key); else await forgetKey();
-      show(data);
-    }
-    catch { $("err").textContent = "That passcode didn't work."; }
-    finally { btn.textContent = "Unlock"; btn.disabled = false; }
+    let key, data;
+    try { key = await deriveKey($("pass").value); data = await decryptWith(key); }
+    catch { $("err").textContent = "That passcode didn't work."; btn.textContent = "Unlock"; btn.disabled = false; return; }
+    $("pass").value = "";
+    if ($("remember").checked) await saveKey(key); else await forgetKey();
+    try { await show(data); } finally { btn.textContent = "Unlock"; btn.disabled = false; }
   };
 
   const initials = n => String(n || "?").replace(/\(.*?\)/g, "").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
@@ -478,7 +532,111 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
 
   let lastData, rz;
   window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => lastData && renderDash(lastData), 150); });
-  function render(data) {
+  /* ---------- recommended ---------- */
+  const norm = s => String(s || "").toLowerCase().replace(/\(.*?\)/g, " ").replace(/\b(sr|snr)\b\.?/g, "senior").replace(/[^a-z0-9]+/g, " ").trim();
+  const sameRole = (a, b) => { const x = norm(a), y = norm(b); return !!x && !!y && (x === y || x.startsWith(y + " ") || y.startsWith(x + " ")); };
+  const sameCo = (a, b) => { const x = norm(a), y = norm(b); return !!x && !!y && (x === y || x.startsWith(y + " ") || y.startsWith(x + " ")); };
+  const payK = n => "$" + (Math.round(n / 100) / 10).toString().replace(/\.0$/, "") + "K";
+  const daysUntil = d => { const t = new Date(); t.setHours(12, 0, 0, 0); return Math.round((new Date(d + "T12:00:00") - t) / 864e5); };
+  const loadChoices = () => { try { return JSON.parse(store.get("jt-rec-choices") || "{}") || {}; } catch { return {}; } };
+  const ICON_EXT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';
+  const ICON_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+  const ICON_NO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+
+  function copyText(t) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
+    return new Promise((res, rej) => {
+      const ta = document.createElement("textarea"); ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy") ? res() : rej(); } catch (e) { rej(e); } finally { ta.remove(); }
+    });
+  }
+
+  function setupRecs(data, recFile, onChange) {
+    const applied = [...data.submitted, ...data.inProgress];
+    const roles = (recFile ? recFile.roles : [])
+      .filter(r => r && r.id && r.company && r.role)
+      .filter(r => !applied.some(a => sameCo(a.company, r.company) && sameRole(a.role, r.role)))
+      .map((r, i) => ({ ...r, rank: i + 1 }));
+    let choices = loadChoices(), filter = "review";
+    const stateOf = r => choices[r.id] || "review";
+    const counts = () => ({ review: roles.filter(r => stateOf(r) === "review").length, approved: roles.filter(r => stateOf(r) === "approved").length, skipped: roles.filter(r => stateOf(r) === "skipped").length });
+
+    /* a new batch = any role id this device hasn't seen before */
+    let seen; try { seen = new Set(JSON.parse(store.get("jt-rec-seen") || "[]")); } catch { seen = new Set(); }
+    const isNew = roles.some(r => !seen.has(r.id));
+    roles.forEach(r => seen.add(r.id));
+    store.set("jt-rec-seen", JSON.stringify([...seen]));
+
+    const fmtPay = s => Array.isArray(s) && s.length === 2 ? `${payK(s[0])}–${payK(s[1])}` : "";
+    const card = r => {
+      const st = stateOf(r), d = r.closes ? daysUntil(r.closes) : null;
+      const badges = [
+        r.family ? `<span class="badge b-family">Family health</span>` : "",
+        d !== null && d >= 0 && d <= 7 ? `<span class="badge b-close">${d === 0 ? "Closes today" : `Closes in ${d} day${d === 1 ? "" : "s"}`}</span>` : "",
+        d !== null && d < 0 ? `<span class="badge b-closed">Closing date passed</span>` : ""
+      ].join("");
+      return `<article class="tile rtile${st === "skipped" ? " is-skipped" : ""}" data-id="${esc(r.id)}">
+        <div class="head"><span class="rank" aria-label="Rank ${r.rank}">${r.rank}</span>${logo(r.company, r.domain)}<div>
+          <div class="co">${esc(r.role)}</div>
+          <div class="role">${esc(r.company)}</div>
+          <div class="meta">${esc(r.where || "")}</div>
+          ${fmtPay(r.salary) ? `<div class="pay">${fmtPay(r.salary)}</div>` : ""}
+        </div></div>
+        <div class="badges">${badges}</div>
+        ${r.why ? `<div class="why"><b>Why it fits</b>${esc(r.why)}</div>` : ""}
+        <div class="racts">
+          ${/^https?:\/\//i.test(r.url || "") ? `<a class="rbtn link" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${ICON_EXT}View posting</a>` : ""}
+          <button class="rbtn ok" data-act="approved" aria-pressed="${st === "approved"}">${ICON_OK}${st === "approved" ? "Approved" : "Approve"}</button>
+          <button class="rbtn no" data-act="skipped" aria-pressed="${st === "skipped"}">${ICON_NO}${st === "skipped" ? "Skipped" : "Skip"}</button>
+        </div>
+      </article>`;
+    };
+
+    const draw = () => {
+      const c = counts(), list = roles.filter(r => stateOf(r) === filter);
+      $("reccount").textContent = `${c.review} to review` + (recFile && recFile.updated ? ` · from the ${fmt(recFile.updated)} search` : "");
+      $("recfilter").querySelectorAll(".chip").forEach(b => {
+        b.setAttribute("aria-pressed", b.dataset.f === filter);
+        b.textContent = ({ review: "To review", approved: "Approved", skipped: "Skipped" })[b.dataset.f] + ` (${c[b.dataset.f]})`;
+      });
+      const empty = { review: c.approved || c.skipped ? "All caught up. Every role has been approved or skipped." : "Nothing to review.", approved: "No approved roles yet.", skipped: "No skipped roles." }[filter];
+      $("recs").innerHTML = list.length ? list.map(card).join("") : `<div class="tile empty">${empty}</div>`;
+      $("copyrec").disabled = !c.approved;
+      $("copyrec").querySelector("span").textContent = c.approved ? `Copy approved for Claude (${c.approved})` : "Copy approved for Claude";
+    };
+
+    $("recfilter").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; filter = b.dataset.f; draw(); };
+    $("recs").onclick = e => {
+      const b = e.target.closest("button[data-act]"); if (!b) return;
+      const id = b.closest(".rtile").dataset.id, act = b.dataset.act;
+      if (choices[id] === act) delete choices[id]; else choices[id] = act;
+      store.set("jt-rec-choices", JSON.stringify(choices));
+      draw(); onChange();
+    };
+    $("copyrec").onclick = async () => {
+      const ok = roles.filter(r => stateOf(r) === "approved");
+      if (!ok.length) return;
+      const msg = [
+        `Please tailor my resume and cover letter for ${ok.length === 1 ? "this role" : `these ${ok.length} roles`} I approved in my Job Tracker. Use my raysan-resume skill, and check each posting before writing.`,
+        ...ok.map((r, i) => [
+          `${i + 1}. ${r.company}: ${r.role}`,
+          `   Location: ${r.where || "not listed"}` + (fmtPay(r.salary) ? ` · Pay: ${fmtPay(r.salary)}` : ""),
+          `   Posting: ${r.url}`,
+          r.why ? `   Why it fits: ${r.why}` : "",
+          r.closes ? `   Closes: ${r.closes}` : ""
+        ].filter(Boolean).join("\n")),
+      ].join("\n\n");
+      const span = $("copyrec").querySelector("span"), label = span.textContent;
+      try { await copyText(msg); span.textContent = "Copied. Paste it to Claude"; }
+      catch { span.textContent = "Couldn't copy"; }
+      setTimeout(() => { span.textContent = label; }, 2200);
+    };
+
+    return { has: roles.length > 0, isNew, toReview: () => counts().review, draw };
+  }
+
+  function render(data, recFile) {
     lastData = data;
     renderDash(data);
     const subs = data.submitted.slice().sort((a,b) => b.date.localeCompare(a.date));
@@ -487,7 +645,10 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
 
     let tab = "Applied", q = "";
     const isInterview = st => ["Screening","Interviewing"].includes(st);
+    const recs = setupRecs(data, recFile, () => { recGroup.n = recs.toReview(); paintTabs(); });
+    const recGroup = { id: "recommended", label: "Recommended", n: recs.toReview(), dot: "d-rec" };
     const groups = [
+      ...(recs.has ? [recGroup] : []),
       { id: "Applied",   label: "Applied",      n: subs.filter(x => x.status === "Applied").length, dot: "s-Applied" },
       { id: "progress",  label: "In progress",  n: data.inProgress.length },
       { id: "Interview", label: "Interviewing", n: subs.filter(x => isInterview(x.status)).length, dot: "s-Interviewing" },
@@ -497,9 +658,11 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
       { id: "targets",   label: "Targets", n: data.targets.length }
     ].filter(g => !(g.hideEmpty && !g.n));
     const saved = store.get("jt-tab"); if (groups.some(g => g.id === saved)) tab = saved;
-    const paintTabs = () => {
+    if (recs.has && recs.isNew) { tab = "recommended"; store.set("jt-tab", tab); }
+    function paintTabs() {
       $("tabs").innerHTML = groups.map(g => `<button class="tab" role="tab" data-t="${g.id}" aria-selected="${g.id === tab}">${g.dot ? `<span class="dot ${g.dot}"></span>` : ""}${g.label}<span class="ct">${g.n}</span></button>`).join("");
-      const subTab = !["progress","rec","targets"].includes(tab);
+      const subTab = !["recommended","progress","rec","targets"].includes(tab);
+      $("sec-recs").hidden = tab !== "recommended";
       $("sec-sub").hidden = !subTab;
       $("sec-progress").hidden = !(tab === "all" || tab === "progress");
       $("sec-rec").hidden = !(tab === "all" || tab === "rec");
@@ -509,6 +672,7 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
     $("q").oninput = e => { q = e.target.value.toLowerCase(); draw(); };
     const inTab = st => tab === "all" || (tab === "Interview" ? isInterview(st) : st === tab);
     paintTabs();
+    if (recs.has) recs.draw();
 
     function draw() {
       const rows = subs.filter(s => inTab(s.status) && (!q || (s.company + " " + s.role).toLowerCase().includes(q)));
