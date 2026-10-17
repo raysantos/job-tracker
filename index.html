@@ -158,6 +158,9 @@ h2 small{color:var(--muted);font-size:15px;font-weight:400}
 .logo.has img.ok{opacity:1}
 .logo.has.loaded{background:#fff;color:transparent}
 .logo.ini{background:var(--surface-2)}
+.logo.bleed,.logo.has.loaded.bleed{border-color:transparent}
+.logo.bleed img{width:34px;height:34px}
+.logo.bleed.rd img{width:100%;height:100%}
 .tile .head{display:flex;gap:12px;align-items:flex-start}
 
 /* tiles */
@@ -402,8 +405,75 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
   };
 
   const initials = n => String(n || "?").replace(/\(.*?\)/g, "").trim().split(/\s+/).slice(0, 2).map(w => w[0]).join("").toUpperCase();
+  /* full-bleed logos: if a favicon's background runs edge to edge in one solid colour (e.g. Amex blue),
+     fill the circle with that colour and scale the icon up. Google's favicons can't be read in a canvas,
+     so the colour is sampled from favicone.com's CORS-enabled copy; the result is cached per domain. */
+  const BLEED_KEY = "jt-bleed-v2";
+  let bleedCache; try { bleedCache = JSON.parse(store.get(BLEED_KEY) || "{}") || {}; } catch { bleedCache = {}; }
+  const bleedSrc = d => `https://favicone.com/${encodeURIComponent(d)}?s=64`;
+  const pending = {};
+  function sampleBleed(domain) {
+    if (domain in bleedCache) return Promise.resolve(bleedCache[domain]);
+    return pending[domain] || (pending[domain] = new Promise(res => {
+      const i = new Image(); i.crossOrigin = "anonymous";
+      const done = v => { bleedCache[domain] = v; store.set(BLEED_KEY, JSON.stringify(bleedCache)); res(v); };
+      i.onerror = () => res(null); /* network error: don't cache, try again next visit */
+      i.onload = () => {
+        try {
+          const W = i.naturalWidth, H = i.naturalHeight; if (W < 16 || H < 16) return done("");
+          const c = document.createElement("canvas"); c.width = W; c.height = H;
+          const x = c.getContext("2d"); x.drawImage(i, 0, 0);
+          const d = x.getImageData(0, 0, W, H).data;
+          const at = (a, b) => { const o = (b * W + a) * 4; return [d[o], d[o + 1], d[o + 2], d[o + 3]]; };
+          const dist = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
+          const median = ps => [0, 1, 2].map(k => ps.map(p => p[k]).sort((a, b) => a - b)[ps.length >> 1]);
+          const hex = c => "#" + c.map(v => v.toString(16).padStart(2, "0")).join("");
+          const isWhite = c => c.every(v => v > 240); /* plain white already matches the white circle */
+          /* the mark itself must be visible: enough pixels in the middle that stand out from the background */
+          const hasMark = bg => { let n = 0, tot = 0;
+            for (let b = Math.round(H * .25); b < H * .75; b++) for (let a = Math.round(W * .25); a < W * .75; a++) {
+              const p = at(a, b); tot++; if (p[3] > 128 && dist(p, bg) > 60) n++; }
+            return n >= tot * .04; };
+          /* square tile: middle 60% of each edge, 1px in (skips rounded corners); 3 of 4 edges must be one solid colour
+             (Amex's lettering runs off one edge) */
+          const edges = [[], [], [], []];
+          for (let t = Math.round(W * .2); t < W * .8; t++) { edges[0].push(at(t, 1)); edges[1].push(at(t, H - 2)); }
+          for (let t = Math.round(H * .2); t < H * .8; t++) { edges[2].push(at(1, t)); edges[3].push(at(W - 2, t)); }
+          const solid = edges.flat().filter(p => p[3] > 230);
+          if (solid.length > 8) {
+            const med = median(solid);
+            const good = edges.filter(e => e.filter(p => p[3] > 230 && dist(p, med) < 36).length >= e.length * .9).length;
+            if (good >= 3) return done(isWhite(med) || !hasMark(med) ? "" : "sq" + hex(med));
+          }
+          /* round badge: the 4 edge midpoints are one solid colour and the corners are transparent */
+          const mids = [at(W >> 1, 1), at(W >> 1, H - 2), at(1, H >> 1), at(W - 2, H >> 1)];
+          const corners = [at(1, 1), at(W - 2, 1), at(1, H - 2), at(W - 2, H - 2)];
+          if (mids.every(p => p[3] > 230) && corners.every(p => p[3] < 30)) {
+            const med = median(mids);
+            if (mids.every(p => dist(p, med) < 36) && !isWhite(med) && hasMark(med)) return done("rd" + hex(med));
+          }
+          done("");
+        } catch { done(""); }
+      };
+      i.src = bleedSrc(domain);
+    }));
+  }
+  window.jtLogo = img => {
+    if (img.naturalWidth <= 16) return;
+    img.classList.add("ok");
+    const box = img.parentNode; box.classList.add("loaded");
+    const domain = box.dataset.d; if (!domain || box.dataset.b) return;
+    box.dataset.b = "1";
+    sampleBleed(domain).then(col => {
+      if (!col) return;
+      box.style.background = col.slice(2); box.classList.add("bleed", col.slice(0, 2));
+      const orig = img.src; /* show the same image the colour came from; fall back if it won't load */
+      img.onerror = () => { img.onerror = null; box.classList.remove("bleed", "sq", "rd"); box.style.background = ""; img.src = orig; };
+      img.src = bleedSrc(domain);
+    });
+  };
   const logo = (name, domain) => domain
-    ? `<span class="logo ini has">${esc(initials(name))}<img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64" alt="" referrerpolicy="no-referrer" onload="if(this.naturalWidth>16){this.classList.add('ok');this.parentNode.classList.add('loaded')}" onerror="this.remove()"></span>`
+    ? `<span class="logo ini has" data-d="${esc(domain)}">${esc(initials(name))}<img src="https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64" alt="" referrerpolicy="no-referrer" onload="jtLogo(this)" onerror="this.remove()"></span>`
     : `<span class="logo ini" aria-hidden="true">${esc(initials(name))}</span>`;
 
   const fmt = d => new Date(d + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
