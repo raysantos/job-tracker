@@ -383,12 +383,26 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
     $("lock").hidden = true; $("app").hidden = false; render(data, recs);
   };
 
-  /* auto-unlock on a device that remembers */
+  /* auto-unlock: a device that remembers, else the passcode from /unlock (a Worker behind the Raysan Apps sign-in).
+     The form stays hidden while trying so it doesn't flash; it comes back if neither works. */
+  const fromSso = async () => {
+    try {
+      const r = await fetch("/unlock", { cache: "no-store", credentials: "same-origin", redirect: "error" });
+      if (!r.ok) return null;
+      const { passcode } = await r.json();
+      return passcode ? await decryptWith(await deriveKey(passcode)) : null;
+    } catch { return null; }
+  };
   (async () => {
-    const k = await loadKey();
-    if (!k) return;
-    let data; try { data = await decryptWith(k); } catch { forgetKey(); return; }
-    await show(data);
+    $("lock").hidden = true;
+    try {
+      const k = await loadKey();
+      let data = null;
+      if (k) { try { data = await decryptWith(k); } catch { forgetKey(); } }
+      if (!data) data = await fromSso();
+      if (data) return await show(data);
+    } catch {}
+    $("lock").hidden = false;
   })();
 
   $("lockform").onsubmit = async e => {
