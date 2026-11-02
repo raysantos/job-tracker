@@ -71,7 +71,7 @@ h1 b{font-weight:700}
 .metric .v{font-size:32px;font-weight:700;line-height:1.1;color:var(--text);font-variant-numeric:tabular-nums}
 .metric .l{color:var(--muted);font-size:14px;margin-top:4px}
 .metric .d{color:var(--muted);font-size:13px}
-.charts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.charts{display:grid;grid-template-columns:1fr;gap:12px;margin-top:12px}
 .panel{display:flex;flex-direction:column;margin:0;background:var(--surface);border:1px solid var(--line);border-radius:24px;padding:18px 20px 12px;box-shadow:var(--shadow);min-width:0}
 .panel figcaption{display:flex;flex-direction:column;gap:2px;margin-bottom:10px}
 .panel figcaption b{font-weight:600;font-size:16px}
@@ -82,29 +82,13 @@ h1 b{font-weight:700}
 .chart text{font-family:inherit;fill:var(--muted);font-size:11px}
 .chart .lbl{fill:var(--text);font-size:12px}
 .chart .grid{stroke:var(--line);stroke-width:1}
-.chart .bar,.chart .whisk,.chart .cap,.chart .mid{pointer-events:none}
+.chart .bar{pointer-events:none}
 .chart .bar{fill:var(--series-1)}
 .chart .hit{fill:transparent;cursor:default}
 .chart g.on .bar{opacity:.75}
-.chart .whisk{stroke:var(--series-1);stroke-width:2;stroke-linecap:round}
-.chart .cap{stroke:var(--series-1);stroke-width:2;stroke-linecap:round}
-.chart .mid{fill:var(--series-1);stroke:var(--surface);stroke-width:2}
 .chart .empty{fill:var(--muted);font-size:13px}
-.sal-ctl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:-2px 0 8px}
-.mini{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 10px;font-size:12px;cursor:pointer;color:var(--muted)}
-.mini[aria-pressed="true"]{color:var(--text);border-color:var(--muted)}
-.mini[aria-pressed="false"] i{opacity:.35}
-.k-ask{width:9px;height:9px;background:var(--series-2);transform:rotate(45deg);display:inline-block}
-.k-avg{width:12px;height:0;border-top:2px dashed var(--muted);display:inline-block}
-.k-range{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin-left:4px}
-.k-range i{width:16px;height:2px;background:var(--series-1);display:inline-block;position:relative}
-.k-range i::after{content:"";position:absolute;left:5px;top:-3px;width:6px;height:6px;border-radius:50%;background:var(--series-1)}
-.chart .askm{fill:var(--series-2);stroke:var(--surface);stroke-width:2;pointer-events:none}
-.chart .avgl{stroke:var(--muted);stroke-width:1.5;stroke-dasharray:4 4;pointer-events:none}
-.chart .avgt{fill:var(--muted);font-size:11px}
 .tip{position:fixed;z-index:20;pointer-events:none;background:var(--navy);color:var(--bg);border-radius:10px;padding:7px 10px;font-size:13px;line-height:1.35;box-shadow:0 6px 20px rgba(0,0,0,.18);max-width:240px}
 .tip strong{display:block;font-size:14px}
-@media (max-width:760px){.charts{grid-template-columns:1fr}}
 @media (max-width:640px){.metrics{grid-template-columns:repeat(2,1fr)}.metric .v{font-size:28px}}
 
 /* status tabs */
@@ -181,7 +165,6 @@ h2 small{color:var(--muted);font-size:15px;font-weight:400}
 .copybtn:disabled{background:var(--surface-2);color:var(--muted);cursor:default}
 .rtile{display:flex;flex-direction:column;gap:12px}
 .rtile .head{position:relative}
-.rank{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--navy);color:var(--bg);font-variant-numeric:tabular-nums;margin-top:7px}
 .pay{color:var(--text);font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
 .badges{display:flex;flex-wrap:wrap;gap:6px}
 .badges:empty{display:none}
@@ -257,15 +240,6 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
         <figure class="panel">
           <figcaption><b>Application activity</b><span id="act-sub"></span></figcaption>
           <div class="chart" id="activity"></div>
-        </figure>
-        <figure class="panel">
-          <figcaption><b>Salary ranges</b><span id="sal-sub">Posted base pay, where listed</span></figcaption>
-          <div class="sal-ctl" id="sal-ctl" role="group" aria-label="Salary chart layers">
-            <button class="mini" data-l="ask" aria-pressed="true"><i class="k-ask"></i>My ask</button>
-            <button class="mini" data-l="avg" aria-pressed="true"><i class="k-avg"></i>Average</button>
-            <span class="k-range"><i></i>Posted range</span>
-          </div>
-          <div class="chart" id="salary"></div>
         </figure>
       </div>
     </section>
@@ -446,7 +420,6 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
     tip.style.left = x + "px"; tip.style.top = Math.max(8, r.top - tip.offsetHeight - 8) + "px";
   };
   const hideTip = () => { tip.hidden = true; };
-  const k = n => "$" + (Math.round(n / 500) / 2).toString().replace(/\.0$/, "") + "K";
   const dayKey = d => d.toISOString().slice(0, 10);
 
   function renderDash(data) {
@@ -468,57 +441,6 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
       m.innerHTML = `<div class="v"></div><div class="l"></div><div class="d"></div>`;
       m.children[0].textContent = v; m.children[1].textContent = l; m.children[2].textContent = d; return m;
     }));
-
-    /* salary: posted range (whisker + midpoint), your ask (diamond), average posted midpoint (dashed) */
-    const layers = { ask: store.get("jt-l-ask") !== "0", avg: store.get("jt-l-avg") !== "0" };
-    $("sal-ctl").querySelectorAll(".mini").forEach(bn => {
-      bn.setAttribute("aria-pressed", layers[bn.dataset.l]);
-      bn.onclick = () => { const l = bn.dataset.l; store.set("jt-l-" + l, layers[l] ? "0" : "1"); renderDash(data); };
-    });
-    const jobs = [...subs, ...data.inProgress].filter(s => Array.isArray(s.salary) || (layers.ask && s.ask))
-      .sort((a, b) => ((b.salary ? b.salary[0] + b.salary[1] : 2 * b.ask)) - ((a.salary ? a.salary[0] + a.salary[1] : 2 * a.ask)));
-    const ranged = jobs.filter(j => j.salary), asks = [...subs, ...data.inProgress].filter(j => j.ask);
-    const avgMid = ranged.length ? ranged.reduce((t, j) => t + (j.salary[0] + j.salary[1]) / 2, 0) / ranged.length : null;
-    const avgAsk = asks.length ? asks.reduce((t, j) => t + j.ask, 0) / asks.length : null;
-    $("sal-sub").textContent = [avgMid && `Avg posted midpoint ${k(avgMid)}`, avgAsk && `your avg ask ${k(avgAsk)}`].filter(Boolean).join(" · ") || "Posted base pay, where listed";
-    const sw = Math.max(280, $("salary").clientWidth || 480), rowH = 32, labW = sw < 380 ? 110 : 128, sPadT = layers.avg ? 18 : 6, axisH = 22, sh = sPadT + jobs.length * rowH + axisH;
-    const s2 = el("svg", { viewBox: `0 0 ${sw} ${Math.max(sh, 80)}`, role: "img",
-      "aria-label": "Salary ranges: " + jobs.map(j => `${j.company}${j.salary ? ` ${k(j.salary[0])} to ${k(j.salary[1])}` : ""}${j.ask ? `, your ask ${k(j.ask)}` : ""}`).join("; ") });
-    if (!jobs.length) { el("text", { class: "empty", x: 0, y: 30 }, s2).textContent = "No salary data recorded yet."; $("salary").replaceChildren(s2); }
-    else {
-    const vals = jobs.flatMap(j => [...(j.salary || []), ...(j.ask && layers.ask ? [j.ask] : [])]);
-    const lo = Math.floor(Math.min(...vals) / 25000) * 25000, hi = Math.ceil(Math.max(...vals) / 25000) * 25000;
-    const sx = v => labW + (v - lo) / (hi - lo) * (sw - labW - 18);
-    const plotBottom = sPadT + jobs.length * rowH;
-    for (let v = lo; v <= hi; v += 25000) {
-      el("line", { class: "grid", x1: sx(v), x2: sx(v), y1: sPadT, y2: plotBottom }, s2);
-      el("text", { x: sx(v), y: sh - 6, "text-anchor": "middle" }, s2).textContent = k(v);
-    }
-    if (layers.avg && avgMid) {
-      el("line", { class: "avgl", x1: sx(avgMid), x2: sx(avgMid), y1: sPadT - 4, y2: plotBottom }, s2);
-      const t = el("text", { class: "avgt", x: sx(avgMid), y: 11, "text-anchor": "middle" }, s2); t.textContent = "Avg " + k(avgMid);
-    }
-    jobs.forEach((j, i) => {
-      const cy = sPadT + i * rowH + rowH / 2, g = el("g", {}, s2);
-      el("text", { class: "lbl", x: 0, y: cy + 4 }, g).textContent = j.company.length > 18 ? j.company.slice(0, 17) + "…" : j.company;
-      if (j.salary) {
-        const [a, b] = j.salary;
-        el("line", { class: "whisk", x1: sx(a), x2: sx(b), y1: cy, y2: cy }, g);
-        el("line", { class: "cap", x1: sx(a), x2: sx(a), y1: cy - 6, y2: cy + 6 }, g);
-        el("line", { class: "cap", x1: sx(b), x2: sx(b), y1: cy - 6, y2: cy + 6 }, g);
-        el("circle", { class: "mid", cx: sx((a + b) / 2), cy, r: 5 }, g);
-      }
-      if (layers.ask && j.ask) { const x = sx(j.ask), r = 6; el("path", { class: "askm", d: `M${x},${cy - r} L${x + r},${cy} L${x},${cy + r} L${x - r},${cy} Z` }, g); }
-      const hit = el("rect", { class: "hit", x: 0, y: cy - rowH / 2, width: sw, height: rowH, tabindex: 0 }, g);
-      const parts = [];
-      if (j.salary) parts.push(`Posted ${k(j.salary[0])} – ${k(j.salary[1])}`);
-      else parts.push("Range not listed");
-      if (j.ask) parts.push(`You asked ${k(j.ask)}` + (j.salary ? (j.ask >= j.salary[1] ? " (top of range)" : j.ask <= j.salary[0] ? " (bottom of range)" : "") : ""));
-      const on = e => showTip(e, j.company, parts.join(" · "));
-      hit.addEventListener("pointerenter", on); hit.addEventListener("pointerleave", hideTip); hit.addEventListener("focus", on); hit.addEventListener("blur", hideTip);
-    });
-    $("salary").replaceChildren(s2);
-    }
 
     /* activity: applications per day, first application -> updated date */
     const dated = subs;
@@ -581,8 +503,7 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
     const applied = [...data.submitted, ...data.inProgress];
     const roles = (recFile ? recFile.roles : [])
       .filter(r => r && r.id && r.company && r.role)
-      .filter(r => !applied.some(a => sameCo(a.company, r.company) && sameRole(a.role, r.role)))
-      .map((r, i) => ({ ...r, rank: i + 1 }));
+      .filter(r => !applied.some(a => sameCo(a.company, r.company) && sameRole(a.role, r.role)));
     let choices = loadChoices(), filter = "review";
     const stateOf = r => choices[r.id] || "review";
     const counts = () => ({ review: roles.filter(r => stateOf(r) === "review").length, approved: roles.filter(r => stateOf(r) === "approved").length, skipped: roles.filter(r => stateOf(r) === "skipped").length });
@@ -602,7 +523,7 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
         d !== null && d < 0 ? `<span class="badge b-closed">Closing date passed</span>` : ""
       ].join("");
       return `<article class="tile rtile${st === "skipped" ? " is-skipped" : ""}" data-id="${esc(r.id)}">
-        <div class="head"><span class="rank" aria-label="Rank ${r.rank}">${r.rank}</span>${logo(r.company, r.domain)}<div>
+        <div class="head">${logo(r.company, r.domain)}<div>
           <div class="co">${esc(r.role)}</div>
           <div class="role">${esc(r.company)}</div>
           <div class="meta">${esc(r.where || "")}</div>
