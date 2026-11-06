@@ -182,6 +182,11 @@ h2 small{color:var(--muted);font-size:15px;font-weight:400}
 .rbtn.ok[aria-pressed="true"]{background:var(--interview);border-color:var(--interview);color:#fff}
 .rbtn.no[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:var(--bg)}
 .rtile.is-skipped{opacity:.7}
+.b-q{background:color-mix(in srgb,var(--interview) 15%,transparent);color:var(--interview)}
+.b-go{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent)}
+.b-done{background:color-mix(in srgb,var(--teal) 16%,transparent);color:var(--offer)}
+.rbtn:disabled{opacity:.55;cursor:default}
+.syncnote{font-size:13px;color:var(--muted);margin:-4px 0 12px}
 
 /* lock */
 .lock{min-height:100vh;display:grid;place-items:center;padding:16px;
@@ -260,6 +265,7 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
           <span>Copy approved for Claude</span>
         </button>
       </div>
+      <p class="syncnote" id="syncnote">Approving a role queues it for Claude, who checks every 2 hours on weekdays and pings you before submitting.</p>
       <div class="tiles" id="recs"></div>
     </section>
 
@@ -486,6 +492,24 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
   const payK = n => "$" + (Math.round(n / 100) / 10).toString().replace(/\.0$/, "") + "K";
   const daysUntil = d => { const t = new Date(); t.setHours(12, 0, 0, 0); return Math.round((new Date(d + "T12:00:00") - t) / 864e5); };
   const loadChoices = () => { try { return JSON.parse(store.get("jt-rec-choices") || "{}") || {}; } catch { return {}; } };
+
+  /* approval queue: Approve/Skip are mirrored to Supabase so a scheduled Claude run can pick them up.
+     Only role IDs and statuses go there; the job details stay in recommended.json. */
+  const SB_URL = "https://wanmrygwqwolrjexymps.supabase.co", SB_KEY = "sb_publishable_eIBhFpIVe1zWPhhN3KBs5g_IGGmh9D6";
+  const rpc = async (fn, body) => {
+    const r = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, { method: "POST", headers: { apikey: SB_KEY, "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+    if (!r.ok) throw new Error(fn + " " + r.status);
+    return r.json();
+  };
+  const QSTATE = {
+    approved:  ["b-q",    "Queued for Claude"],
+    started:   ["b-q",    "Claude is applying"],
+    ready:     ["b-go",   "Ready for your go"],
+    needs_you: ["b-go",   "Needs your input"],
+    submitted: ["b-done", "Submitted"],
+    failed:    ["b-closed", "Couldn't finish. Approve again to retry"]
+  };
+  const LOCKED = ["started", "ready", "needs_you", "submitted"];
   const ICON_EXT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>';
   const ICON_OK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
   const ICON_NO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
@@ -504,8 +528,10 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
     const roles = (recFile ? recFile.roles : [])
       .filter(r => r && r.id && r.company && r.role)
       .filter(r => !applied.some(a => sameCo(a.company, r.company) && sameRole(a.role, r.role)));
-    let choices = loadChoices(), filter = "review";
-    const stateOf = r => choices[r.id] || "review";
+    let choices = loadChoices(), filter = "review", queue = {}, queueLoaded = false;
+    const qOf = r => queue[r.id];
+    const localOnly = r => queueLoaded && choices[r.id] === "approved" && !qOf(r);
+    const stateOf = r => { const q = qOf(r); if (q && q !== "failed") return "approved"; if (q === "failed") return "review"; return choices[r.id] || "review"; };
     const counts = () => ({ review: roles.filter(r => stateOf(r) === "review").length, approved: roles.filter(r => stateOf(r) === "approved").length, skipped: roles.filter(r => stateOf(r) === "skipped").length });
 
     /* a new batch = any role id this device hasn't seen before */
@@ -520,8 +546,11 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
       const badges = [
         r.family ? `<span class="badge b-family">Family health</span>` : "",
         d !== null && d >= 0 && d <= 7 ? `<span class="badge b-close">${d === 0 ? "Closes today" : `Closes in ${d} day${d === 1 ? "" : "s"}`}</span>` : "",
-        d !== null && d < 0 ? `<span class="badge b-closed">Closing date passed</span>` : ""
+        d !== null && d < 0 ? `<span class="badge b-closed">Closing date passed</span>` : "",
+        QSTATE[qOf(r)] ? `<span class="badge ${QSTATE[qOf(r)][0]}">${QSTATE[qOf(r)][1]}</span>` : "",
+        localOnly(r) ? `<span class="badge b-closed">Approved on this device only</span>` : ""
       ].join("");
+      const lock = LOCKED.includes(qOf(r)) ? " disabled" : "";
       return `<article class="tile rtile${st === "skipped" ? " is-skipped" : ""}" data-id="${esc(r.id)}">
         <div class="head">${logo(r.company, r.domain)}<div>
           <div class="co">${esc(r.role)}</div>
@@ -533,8 +562,8 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
         ${r.why ? `<div class="why"><b>Why it fits</b>${esc(r.why)}</div>` : ""}
         <div class="racts">
           ${/^https?:\/\//i.test(r.url || "") ? `<a class="rbtn link" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">${ICON_EXT}View posting</a>` : ""}
-          <button class="rbtn ok" data-act="approved" aria-pressed="${st === "approved"}">${ICON_OK}${st === "approved" ? "Approved" : "Approve"}</button>
-          <button class="rbtn no" data-act="skipped" aria-pressed="${st === "skipped"}">${ICON_NO}${st === "skipped" ? "Skipped" : "Skip"}</button>
+          <button class="rbtn ok" data-act="approved" aria-pressed="${st === "approved" && !localOnly(r)}"${lock}>${ICON_OK}${localOnly(r) ? "Queue for Claude" : st === "approved" ? "Approved" : "Approve"}</button>
+          <button class="rbtn no" data-act="skipped" aria-pressed="${st === "skipped"}"${lock}>${ICON_NO}${st === "skipped" ? "Skipped" : "Skip"}</button>
         </div>
       </article>`;
     };
@@ -548,23 +577,44 @@ footer{color:var(--muted);font-size:14px;padding:24px 0 48px;display:flex;justif
       });
       const empty = { review: c.approved || c.skipped ? "All caught up. Every role has been approved or skipped." : "Nothing to review.", approved: "No approved roles yet.", skipped: "No skipped roles." }[filter];
       $("recs").innerHTML = list.length ? list.map(card).join("") : `<div class="tile empty">${empty}</div>`;
-      $("copyrec").disabled = !c.approved;
-      $("copyrec").querySelector("span").textContent = c.approved ? `Copy approved for Claude (${c.approved})` : "Copy approved for Claude";
+      const nCopy = roles.filter(r => stateOf(r) === "approved" && !LOCKED.includes(qOf(r))).length;
+      $("copyrec").disabled = !nCopy;
+      $("copyrec").querySelector("span").textContent = nCopy ? `Copy approved for Claude (${nCopy})` : "Copy approved for Claude";
     };
 
     $("recfilter").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; filter = b.dataset.f; draw(); };
     $("recs").onclick = e => {
       const b = e.target.closest("button[data-act]"); if (!b) return;
-      const id = b.closest(".rtile").dataset.id, act = b.dataset.act;
-      if (choices[id] === act) delete choices[id]; else choices[id] = act;
+      const id = b.closest(".rtile").dataset.id, act = b.dataset.act, q = queue[id];
+      if (LOCKED.includes(q)) return;
+      let send = null;
+      if (act === "approved") {
+        const on = q === "approved" || (!queueLoaded && choices[id] === "approved");
+        if (on) { delete choices[id]; delete queue[id]; send = false; }
+        else { choices[id] = "approved"; queue[id] = "approved"; send = true; }
+      } else {
+        if (choices[id] === "skipped") delete choices[id]; else choices[id] = "skipped";
+        if (q) { delete queue[id]; send = false; }
+      }
       store.set("jt-rec-choices", JSON.stringify(choices));
       draw(); onChange();
+      if (send !== null) {
+        rpc("set_job_approval", { p_id: id, p_approved: send })
+          .then(st => { if (st === "withdrawn") delete queue[id]; else queue[id] = st; $("syncnote").textContent = SYNC_OK; draw(); onChange(); })
+          .catch(() => { $("syncnote").textContent = "Couldn't reach the approval queue. Your choice is saved on this device; use Copy approved for Claude instead."; });
+      }
     };
+    const SYNC_OK = $("syncnote").textContent;
+    rpc("get_job_approvals").then(rows => {
+      queue = {}; (rows || []).forEach(x => { queue[x.id] = x.status; });
+      queueLoaded = true;
+      draw(); onChange();
+    }).catch(() => { $("syncnote").textContent = "Couldn't reach the approval queue, so approvals are saved on this device only for now."; });
     $("copyrec").onclick = async () => {
-      const ok = roles.filter(r => stateOf(r) === "approved");
+      const ok = roles.filter(r => stateOf(r) === "approved" && !LOCKED.includes(qOf(r)));
       if (!ok.length) return;
       const msg = [
-        `Please tailor my resume and cover letter for ${ok.length === 1 ? "this role" : `these ${ok.length} roles`} I approved in my Job Tracker. Use my raysan-resume skill, and check each posting before writing.`,
+        `Please run my job-apply skill for ${ok.length === 1 ? "this role" : `these ${ok.length} roles`} I approved in my Job Tracker: tailor my resume and cover letter, fill out the application, and check with me before submitting.`,
         ...ok.map((r, i) => [
           `${i + 1}. ${r.company}: ${r.role}`,
           `   Location: ${r.where || "not listed"}` + (fmtPay(r.salary) ? ` · Pay: ${fmtPay(r.salary)}` : ""),

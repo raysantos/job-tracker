@@ -35,3 +35,9 @@ The **Recommended** tab reads `recommended.json` from the repo root. This file i
 - `family: true` adds a "Family health" badge. `closes` (optional, `YYYY-MM-DD`) adds a "Closes in X days" badge when the role closes within 7 days.
 - Any role whose company and title match an entry in Submitted or In progress is hidden. The tab is hidden when no roles are left.
 - Never put private notes here. Anything private belongs in the encrypted `data.json`.
+
+## Approval queue (Supabase)
+
+Approve and Skip are also sent to the `job_approvals` table in the `rss-reader` Supabase project, through two RPC functions the page calls with the publishable key: `set_job_approval(p_id, p_approved)` and `get_job_approvals()`. The table holds only role IDs and statuses; the page can't read or write it directly.
+
+A scheduled Claude task checks the queue every 2 hours on weekdays and runs the `job-apply` skill on each `approved` role that is also in `recommended.json`. Status flow: `approved` → `started` → `ready` (waiting for Ray's go) or `needs_you` → `submitted`, or `failed`. Once a role is `started`, the page locks its buttons. Approving a `failed` role queues it again.
